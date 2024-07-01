@@ -37,25 +37,35 @@ const getPosts = async (req, res) => {
 const createPost = async (req, res) => {
     try {
         const { title, desc, image, tags } = req.body;
-        const tagDocs = await Tag.find({ name: { $in: tags } });
 
-        if (tagDocs.length !== tags.length) {
-            return res.status(400).json({ error: 'Some tags are invalid' });
+        const existingTags = await Tag.find({ name: { $in: tags } });
+
+        const existingTagNames = existingTags.map(tag => tag.name);
+
+        const newTagNames = tags.filter(tag => !existingTagNames.includes(tag));
+
+        let newTags = [];
+        if (newTagNames.length > 0) {
+            newTags = await Tag.insertMany(newTagNames.map(name => ({ name })));
         }
+
+        const allTags = [...existingTags, ...newTags];
 
         const newPost = new Post({
             title,
             desc,
             image,
-            tags: tagDocs.map(tag => tag._id)
+            tags: allTags.map(tag => tag._id)
         });
-
+t
         await newPost.save();
+
         res.status(201).json(newPost);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
+
 
 module.exports = {
     getPosts,
