@@ -1,0 +1,63 @@
+const Post = require('../models/Post');
+const Tag = require('../models/Tag');
+
+const getPosts = async (req, res) => {
+    try {
+        const { sort, page = 1, limit = 10, keyword, tag } = req.query;
+        const query = {};
+
+        if (keyword) {
+            query.$or = [
+                { title: { $regex: keyword, $options: 'i' } },
+                { desc: { $regex: keyword, $options: 'i' } }
+            ];
+        }
+
+        if (tag) {
+            const tagDoc = await Tag.findOne({ name: tag });
+            if (tagDoc) {
+                query.tags = tagDoc._id;
+            } else {
+                return res.status(400).json({ error: 'Tag not found' });
+            }
+        }
+
+        const posts = await Post.find(query)
+            .sort(sort)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('tags');
+
+        res.status(200).json(posts);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const createPost = async (req, res) => {
+    try {
+        const { title, desc, image, tags } = req.body;
+        const tagDocs = await Tag.find({ name: { $in: tags } });
+
+        if (tagDocs.length !== tags.length) {
+            return res.status(400).json({ error: 'Some tags are invalid' });
+        }
+
+        const newPost = new Post({
+            title,
+            desc,
+            image,
+            tags: tagDocs.map(tag => tag._id)
+        });
+
+        await newPost.save();
+        res.status(201).json(newPost);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+module.exports = {
+    getPosts,
+    createPost
+};
