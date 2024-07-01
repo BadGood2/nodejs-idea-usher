@@ -3,7 +3,16 @@ const Tag = require('../models/Tag');
 
 const getPosts = async (req, res) => {
     try {
-        const { sort, page = 1, limit = 10, keyword, tag } = req.query;
+        const { sort, page, limit, keyword, tag } = req.query;
+
+        const allowedOptions = ['sort', 'page', 'limit', 'keyword', 'tag'];
+
+        const extraParams = Object.keys(req.query).filter(param => !allowedOptions.includes(param));
+
+        if (extraParams.length > 0) {
+            return res.status(400).json({ error: `Additional parameters not allowed: ${extraParams.join(', ')}` });
+        }
+        
         const query = {};
 
         if (keyword) {
