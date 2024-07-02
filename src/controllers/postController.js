@@ -1,5 +1,7 @@
 const Post = require('../models/Post');
 const Tag = require('../models/Tag');
+const { postSchema } = require('../validation/postValidation');
+
 
 const getPosts = async (req, res) => {
     try {
@@ -45,13 +47,26 @@ const getPosts = async (req, res) => {
 
 const createPost = async (req, res) => {
     try {
-        const { title, desc, image, tags } = req.body;
+        const { error, value } = postSchema.validate(req.body, { allowUnknown: true, abortEarly: false });
+    
+        if (error) {
+            const errors = error.details.map(err => err.message);
+            return res.status(400).json({ errors });
+        }
 
-        const existingTags = await Tag.find({ name: { $in: tags } });
+        const { title, desc, tags } = req.body;
+        const imageBuffer = req?.files?.[0]
+        
+        if (!imageBuffer) {
+            return res.status(400).json({ error: 'MISSING_IMAGE_FILE' });
+        }
+        const image = imageBuffer.buffer.toString('base64');
 
-        const existingTagNames = existingTags.map(tag => tag.name);
+        const regexTags = tags.map(tag => new RegExp(`^${tag}$`, 'i'));
+        const existingTags = await Tag.find({ name: { $in: regexTags } });
 
-        const newTagNames = tags.filter(tag => !existingTagNames.includes(tag));
+        const existingTagNames = existingTags.map(tag => tag.name.toLowerCase());
+        const newTagNames = tags.filter(tag => !existingTagNames.includes(tag.toLowerCase()));
 
         let newTags = [];
         if (newTagNames.length > 0) {
@@ -64,9 +79,9 @@ const createPost = async (req, res) => {
             title,
             desc,
             image,
-            tags: allTags.map(tag => tag._id)
+            tags: allTags.map(tag => tag._id.toString())
         });
-t
+
         await newPost.save();
 
         res.status(201).json(newPost);
