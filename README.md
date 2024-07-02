@@ -20,7 +20,7 @@ Ensure you have the following installed on your machine:
 Create a `.env` file in the root of the project with the following content:
 
 PORT=3000
-MONGO_URI=mongodb://mongo:27017/node-mongo-api
+MONGO_URI=mongodb://root:example@localhost:27017/node-api-db?authSource=admin
 
 ## Start the Server
 

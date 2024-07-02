@@ -7,9 +7,12 @@ const createTag = async (req, res) => {
         const newTag = new Tag({ name });
         await newTag.save();
 
-        res.status(201).json(newTag);
+        res.status(201).json({
+            status : true,
+            data: newTag
+        });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({status: false, error: err.message });
     }
 };
 

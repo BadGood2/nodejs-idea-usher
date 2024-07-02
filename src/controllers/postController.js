@@ -9,10 +9,11 @@ const getPosts = async (req, res) => {
 
         const allowedOptions = ['sort', 'page', 'limit', 'keyword', 'tag'];
 
+        // checking if parameter is allowed or not
         const extraParams = Object.keys(req.query).filter(param => !allowedOptions.includes(param));
 
         if (extraParams.length > 0) {
-            return res.status(400).json({ error: `Additional parameters not allowed: ${extraParams.join(', ')}` });
+            return res.status(400).json({status: false, error: `Additional parameters not allowed: ${extraParams.join(', ')}` });
         }
         
         const query = {};
@@ -29,11 +30,11 @@ const getPosts = async (req, res) => {
             if (tagDoc) {
                 query.tags = tagDoc._id;
             } else {
-                return res.status(400).json({ error: 'Tag not found' });
+                return res.status(400).json({status: false, error: 'Tag not found' });
             }
         }
 
-        // pass inside query params exp: posts?sort=title:desc
+        // pass inside query params example: localhost:3000/posts?sort=title:desc
         const sortOption = {};
         if (sort) {
             const parts = sort.split(':');
@@ -46,9 +47,12 @@ const getPosts = async (req, res) => {
             .limit(parseInt(limit))
             .populate('tags', 'name');
 
-        res.status(200).json(posts);
+        res.status(200).json({
+            status : true,
+            data: posts
+        });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({status: false, error: err.message });
     }
 };
 
@@ -58,17 +62,18 @@ const createPost = async (req, res) => {
     
         if (error) {
             const errors = error.details.map(err => err.message);
-            return res.status(400).json({ errors });
+            return res.status(400).json({status: false, errors });
         }
 
         const { title, desc, tags } = req.body;
         const imageBuffer = req?.files?.[0]
         
         if (!imageBuffer) {
-            return res.status(400).json({ error: 'MISSING_IMAGE_FILE' });
+            return res.status(400).json({status: false, error: 'MISSING_IMAGE_FILE' });
         }
         const image = imageBuffer.buffer.toString('base64');
 
+        // checking if tags given are present previously in our DB, if not then inserting them
         const regexTags = tags.map(tag => new RegExp(`^${tag}$`, 'i'));
         const existingTags = await Tag.find({ name: { $in: regexTags } });
 
@@ -91,9 +96,12 @@ const createPost = async (req, res) => {
 
         await newPost.save();
 
-        res.status(201).json(newPost);
+        res.status(201).json({
+            status : true,
+            data: newPost
+        });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ status: false, error: err.message });
     }
 };
 
