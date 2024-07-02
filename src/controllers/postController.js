@@ -5,7 +5,7 @@ const { postSchema } = require('../validation/postValidation');
 
 const getPosts = async (req, res) => {
     try {
-        const { sort, page, limit, keyword, tag } = req.query;
+        const { sort, page = 1, limit = 10, keyword, tag } = req.query;
 
         const allowedOptions = ['sort', 'page', 'limit', 'keyword', 'tag'];
 
@@ -33,11 +33,18 @@ const getPosts = async (req, res) => {
             }
         }
 
+        // pass inside query params exp: posts?sort=title:desc
+        const sortOption = {};
+        if (sort) {
+            const parts = sort.split(':');
+            sortOption[parts[0]] = parts[1] === 'desc' ? -1 : 1;
+        }
+
         const posts = await Post.find(query)
-            .sort(sort)
+            .sort(sortOption)
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('tags');
+            .populate('tags', 'name');
 
         res.status(200).json(posts);
     } catch (err) {
